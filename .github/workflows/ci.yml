@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  firstjob:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Récupérer le code
+      - uses: actions/checkout@v7
+
+      # Installer un environnement Node.js
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+
+      # Mettre en cache des dépendances
+      - uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+
+      # Installer les dépendances
+      - run: npm ci
+
+      # Lancer les tests
+      - run: npm test
+
+      # Ecrire le statut du job et la ref du commit dans $GITHUB_STEP_SUMMARY
+      - if: always()
+        run: |
+          echo "## Résumé" >> $GITHUB_STEP_SUMMARY
+          echo "- **Statut du job :** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ref :** ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit :** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
