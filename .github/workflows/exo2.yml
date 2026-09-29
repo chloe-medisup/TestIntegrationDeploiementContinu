@@ -1,0 +1,42 @@
+name: exo2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  exo2:
+    runs-on: ubuntu-26.04
+
+    steps:
+      # Récupérer le code
+      - uses: actions/checkout@v7
+
+      # Préparer l'environnement Node.js
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+
+      # Mettre en cache les dépendances
+      - uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      # Installer les dépendances
+      - run: npm ci
+
+      # Lancer le build
+      - run: npm run build
+
+      - run: |
+          if [ ! -d dist ]; then
+            echo "::error::Le dossier dist/ n'existe pas"
+            exit 1
+          fi
+      - run: npm run test
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: dist/
+      - run: |
+          echo "## Build" >> "$GITHUB_STEP_SUMMARY"
