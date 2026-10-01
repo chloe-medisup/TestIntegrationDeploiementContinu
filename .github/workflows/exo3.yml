@@ -6,34 +6,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-26.04
-
     steps:
-      # Récupérer le code
       - uses: actions/checkout@v7
-
-      # Préparer l'environnement Node.js
       - uses: actions/setup-node@v7
         with:
           node-version: 24.18.0
-
-      # Mettre en cache les dépendances
+      - run: npm ci
       - uses: actions/cache@v5
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      # Installer les dépendances
-      - run: npm ci
-
-      # Lancer le build
       - run: npm run build
-
       - run: |
           if [ ! -d dist ]; then
             echo "::error::Le dossier dist/ n'existe pas"
             exit 1
           fi
-      - run: npm run test
       - uses: actions/upload-artifact@v7
         with:
           name: application
@@ -42,60 +30,40 @@ jobs:
           echo "## Build" >> "$GITHUB_STEP_SUMMARY"
 
   test:
-#    needs: build
+    needs: build
     strategy:
       fail-fast: false
       max-parallel: 2
-
       matrix:
         node-version: [ 20, 22 ]
         os: [ ubuntu-26.04, windows-latest ]
-
     runs-on: ${{ matrix.os }}
-
     steps:
-      # Récupérer le code (pour package.json et les tests)
       - uses: actions/checkout@v7
-
-      # Installer la version de Node.js de la variante
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-
-      # Mettre en cache les dépendances
       - uses: actions/cache@v5
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      # Installer les dépendances
       - run: npm ci
-
-      # Récupérer l'artefact produit par build
       - uses: actions/download-artifact@v7
         with:
           name: application
           path: dist/
-
-      # Lancer les tests
       - run: npm test
 
   deploy:
     needs: test
     runs-on: ubuntu-26.04
     environment: ${{ inputs.environment }}
-
     steps:
-        # Récupérer l'artefact application
         - uses: actions/download-artifact@v7
           with:
             name: application
             path: dist/
-
-          # Afficher la variable d'Environment API_URL
         - run: echo "API_URL = ${{ vars.API_URL }}"
-
-          # Résumer la cible, l'URL et le commit
         - run: |
             echo "## Déploiement" >> "$GITHUB_STEP_SUMMARY"
             echo "- **Cible :** ${{ inputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
